@@ -63,18 +63,18 @@ def main():
     if not args.without_saving_data:
         print(f"Model Data Will Be Saved in {args.folder_name}.")
 
-    path = "data"
-    testName = args.folder_name
-    timeDuration = read_time_str(args.time)
+    path = args.main_output_folder
+    test_name = args.folder_name
+    time_duration = read_time_str(args.time)
 
     try:
-        create_folder_in_path(path, testName)
+        create_folder_in_path(path, test_name)
     except FileExistsError as e:
         print(e)
         exit()
 
-    saveName = "/" + testName
-    analysisOutName = "/" + testName.replace("/", "") + "out/"
+    saveName = "/" + test_name
+    analysisOutName = "/" + test_name.replace("/", "") + "out/"
 
 
 
@@ -96,12 +96,14 @@ def main():
 
     print(f"\n\n{'-' * 30}\nTo Interrupt Press: 'CTRL+C'\n{'-' * 30}\n\n")
 
-    try:
-        if not args.immediate_start:
-            print("\n\nProgram Will Start In 5 Seconds.")
-            time.sleep(5)
+    if not args.immediate_start:
+        print("\n\nProgram Will Start In 5 Seconds.")
+        time.sleep(5)
 
-        print("-" * 80, end="")
+    print("-" * 80, end="")
+
+    try:
+
         while True:
             timeStart = time.time()
 
@@ -142,7 +144,7 @@ def main():
             print("-" * 100, end="")
 
 
-            if totalTime > timeDuration:
+            if totalTime > time_duration:
                 break
 
     except KeyboardInterrupt:
@@ -150,7 +152,7 @@ def main():
     finally:
         windowsManager.quitWindow()
 
-        print(f"\n\nProgram Simulation Process Named '{testName}' is Finished.\n")
+        print(f"\n\nProgram Simulation Process Named '{test_name}' is Finished.\n")
         print(f"\nStarting saving output in Path: '{path + analysisOutName}'.\n")
 
         save_num_players_strategies_avg_energy(path, analysisOutName, numOfPlayers, numOfStrategies, avgEnergy)
