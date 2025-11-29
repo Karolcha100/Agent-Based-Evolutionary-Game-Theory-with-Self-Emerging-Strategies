@@ -1,7 +1,5 @@
 import time
 import argparse
-import os
-import numpy as np
 
 from Environment import Environment
 from WindowVisualization import WindowVisualization
@@ -15,23 +13,59 @@ from MainUtils import *
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="2D Simulation of Evolutionary Game Theory with infinite number of self creating strategies",
-        description="Program takes time working duration and save folder name from terminal."
-                    "\nIf folder exists, program raises error and stops running.")
+        description="2D Simulation of Evolutionary Game Theory with infinite number of self creating strategies."
+                    "\n\nProgram needs as input (time, folder_name) as (work duration, data saving path)."
+                    "\nData produced by model, will be saved in [main_output_folder]/folder_name. "
+                    "Where [main_output_folder] defaults to data."
+                    "\nIf folder (folder_name) exists, program start will be prevented."
+                    "\n\nExample:"
+                    "\n>>> python3 Main.py 1:2:3 EXAMPLE_FOLDER"
+                    "\nWill run model for 1 hour, 2 minutes and 3 seconds, with saving data into "
+                    "[main_output_folder]/EXAMPLE_FOLDER.",
+        epilog = f"{'-' * 80}",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
-    parser.add_argument("time", type=str, help="Time duration in format hours:minutes:seconds")
-    parser.add_argument("folderName", type=str, help="In Example: TESTA1")
-    parser.add_argument("-skip", "--skip", action="store_true", help="Skip 5 seconds duration, before Simulation start")
+    parser.add_argument(
+        "time",
+        type=str,
+        help="Time duration in format hours:minutes:seconds"
+    )
+    parser.add_argument(
+        "folder_name",
+        type=str,
+        help="Folder name, inside which model data output is saved"
+    )
+    parser.add_argument(
+        "-immediate",
+        "--immediate_start",
+        action="store_true",
+        help="Skip 5 seconds duration, before model starts"
+    )
+    parser.add_argument(
+        "-save_off",
+        "--without_saving_data",
+        action="store_true",
+        help="Run model without saving data to folder. Even with that flag, folder_name should be provided"
+    )
+    parser.add_argument(
+        "-main_folder",
+        "--main_output_saving_folder",
+        type=str,
+        help="Change root folder inside which are located folders for saved models outputs. Default is data",
+        default="data"
+    )
     # parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity") ##TODO
 
     args = parser.parse_args()
 
-    print(f"Will Run: {args.time}, and will be saved in {args.folderName}.")
+    print(f"Model Will Run For: {args.time}")
+    if not args.without_saving_data:
+        print(f"Model Data Will Be Saved in {args.folder_name}.")
 
     path = "data"
-    testName = args.folderName
+    testName = args.folder_name
     timeDuration = read_time_str(args.time)
-    ifSkipingWaiting = args.skip
 
     try:
         create_folder_in_path(path, testName)
@@ -63,11 +97,11 @@ def main():
     print(f"\n\n{'-' * 30}\nTo Interrupt Press: 'CTRL+C'\n{'-' * 30}\n\n")
 
     try:
-        if not ifSkipingWaiting:
+        if not args.immediate_start:
             print("\n\nProgram Will Start In 5 Seconds.")
             time.sleep(5)
 
-        print("-" * 100, end="")
+        print("-" * 80, end="")
         while True:
             timeStart = time.time()
 
@@ -118,8 +152,6 @@ def main():
 
         print(f"\n\nProgram Simulation Process Named '{testName}' is Finished.\n")
         print(f"\nStarting saving output in Path: '{path + analysisOutName}'.\n")
-
-        save_time_of_round_steps(path, analysisOutName, timeOfSteps)
 
         save_num_players_strategies_avg_energy(path, analysisOutName, numOfPlayers, numOfStrategies, avgEnergy)
 

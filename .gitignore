@@ -2,3 +2,4 @@
 /venv
 /local_tests
 /data
+/__pycache__
