@@ -257,14 +257,11 @@ class Environment:
     def makeRandomWalkAndRefreshTree(self) -> None:
         executionArgs = {0 : self.playersRandomWalkRange}
 
-        toExecute: tuple[
-            Callable[[float], None],
-            Callable[[], None],
-            Callable[[], None]] = (
+        toExecute: list[Callable] = [
         self.spatialEnv.makeRandomMove,                            
         self.spatialEnv.movePlayersOnTheOtherSideOfTheEnvironment, 
-        self.spatialEnv.refreshTree ,                               
-        )
+        self.spatialEnv.refreshTree,                               
+        ]
         executeStartTime : float
 
         print(">\tInner Methods Runtime of [makeRandomWalkAndRefreshTree]:")
