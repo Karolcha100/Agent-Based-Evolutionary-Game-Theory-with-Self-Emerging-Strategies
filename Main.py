@@ -14,10 +14,10 @@ from MainUtils import *
 def main():
     parser = argparse.ArgumentParser(
         description="2D Simulation of Evolutionary Game Theory with infinite number of self creating strategies."
-                    "\n\nProgram needs as input (time, folder_name) as (work duration, data saving path)."
-                    "\nData produced by model, will be saved in [main_output_folder]/folder_name. "
+                    "\n\nProgram needs as input (time, run_name) as (work duration, saving folder)."
+                    "\nData produced by model, will be saved in [main_output_folder]/run_name. "
                     "Where [main_output_folder] defaults to data."
-                    "\nIf folder (folder_name) exists, program start will be prevented."
+                    "\nIf folder (run_name) exists, program start will be prevented."
                     "\n\nExample:"
                     "\n>>> python3 Main.py 1:2:3 EXAMPLE_FOLDER"
                     "\nWill run model for 1 hour, 2 minutes and 3 seconds, with saving data into "
@@ -32,9 +32,9 @@ def main():
         help="Time duration in format hours:minutes:seconds"
     )
     parser.add_argument(
-        "folder_name",
+        "run_name",
         type=str,
-        help="Folder name, inside which model data output is saved"
+        help="Run name, also run folder name inside which model data output is saved"
     )
     parser.add_argument(
         "-immediate",
@@ -50,116 +50,141 @@ def main():
     )
     parser.add_argument(
         "-main_folder",
-        "--main_output_saving_folder",
+        "--main_saving_folder",
         type=str,
         help="Change root folder inside which are located folders for saved models outputs. Default is data",
         default="data"
     )
+    parser.add_argument(
+        "-resolution",
+        "--window_resolution",
+        nargs=2,
+        type=tuple[int, int],
+        help="Change window resolution, default is 1280 x 720",
+        default=(1280, 720)
+    )
+    parser.add_argument(
+        "-scale",
+        "--scale_of",
+        nargs=2,
+        type=tuple[int, int],
+        help="Change window resolution, default is 1280 x 720",
+        default=(1280, 720)
+    )
     # parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity") ##TODO
 
+
     args = parser.parse_args()
+    time_duration = read_time_str(args.time)
+
 
     print(f"Model Will Run For: {args.time}")
     if not args.without_saving_data:
-        print(f"Model Data Will Be Saved in {args.folder_name}.")
+        print(f"Model Data Will Be Saved in {args.main_saving_folder}/{args.folder_name}.")
+    else:
+        print(f"Model Data WILL NOT Be Saved")
 
-    path = args.main_output_folder
-    test_name = args.folder_name
-    time_duration = read_time_str(args.time)
 
     try:
-        create_folder_in_path(path, test_name)
+        create_folder_in_path(args.main_saving_folder, args.folder_name)
     except FileExistsError as e:
         print(e)
         exit()
 
-    saveName = "/" + test_name
-    analysisOutName = "/" + test_name.replace("/", "") + "out/"
 
 
-
-    numOfPlayers : list[int] = []
-    avgEnergy : list[float] = []
-    numOfStrategies : list[int] = []
-    timeOfSteps : list [float] = []
-    totalTime : float = 0.0
-
-
-    scaler = 10
-    width, height = 1280//scaler, 720//scaler
+    width, height = args.window_resolution[0], args.window_resolution[1]
 
     env : Environment = Environment(envSize=(0, 0, width, height))
-    windowsManager : WindowVisualization = WindowVisualization(width=width, height=height, fps=120, scaler = scaler)
+    window_manager : WindowVisualization = WindowVisualization(width=width, height=height, fps=120)
     env.addZeroStartegyPlayer()
     env.addZeroStartegyPlayer()
-    roundsNum : int = 0
+    iteration_num : int = 0
 
-    print(f"\n\n{'-' * 30}\nTo Interrupt Press: 'CTRL+C'\n{'-' * 30}\n\n")
+
+    print("-" * 80, end="")
+
+    num_of_players: list[int] = []
+    avg_energy: list[float] = []
+    num_of_strategies: list[int] = []
+    time_of_steps: list[float] = []
+    total_time: float = 0.0
 
     if not args.immediate_start:
         print("\n\nProgram Will Start In 5 Seconds.")
         time.sleep(5)
 
-    print("-" * 80, end="")
-
     try:
+        print(f"\n\n{'-' * 30}\nTo Interrupt Press: 'CTRL+C'\n{'-' * 30}\n\n")
 
         while True:
-            timeStart = time.time()
+            time_start = time.time()
 
-            roundsNum += 1
-            print(f"\n\nRound: {roundsNum}"
-                  f"\nExpected Round Execution Time [h:m:s]: {create_time_string(2 * timeOfSteps[-1] - timeOfSteps[-2]) if roundsNum > 2 else '-1:-1:-1'}"
-                  f"\nExpected Round Execution Time [s]: {2 * timeOfSteps[-1] - timeOfSteps[-2] if roundsNum > 2 else -1:.4f} [sec]")
+            iteration_num += 1
+            print(f"\n\nRound: {iteration_num}\n"
+                  f"Expected Round Execution Time [h:m:s]: "
+                  f"{create_time_string(2 * time_of_steps[-1] - time_of_steps[-2]) if iteration_num > 2 else '-1:-1:-1'}\n"
+                  f"Expected Round Execution Time [s]: "
+                  f"{2 * time_of_steps[-1] - time_of_steps[-2] if iteration_num > 2 else -1:.4f} [sec]")
 
 
             env.roundOneStep()
+            window_manager.run_frame(env.getAllPlayersPositionsWithStrategyColor())
 
 
-            windowsManager.run(env.getAllPlayersPositionsWithStrategyColor(), playerRadius=1)
+            num_of_players.append(env.getNumOfPlayers())
+            num_of_strategies.append(env.getNumOfStrategies())
+            avg_energy.append(env.getAvgEnergy())
 
+            if not args.without_saving_data:
+                # env.savePlayersDataInThisIteration()
+                # env.saveStrategiesPopularityInThisIteration()
+                pass
 
-            numOfPlayers.append(env.getNumOfPlayers())
-            avgEnergy.append(env.getAvgEnergy())
-            numOfStrategies.append(env.getNumOfStrategies())
-
-            env.savePlayersDataInThisIteration(path + saveName, roundsNum)
-            env.saveStrategiesPopularityInThisIteration(path+saveName, roundsNum)
-            # env.saveStrategiesPayoffs(path + saveName, roundsNum)
-
-            timeStop = time.time()
-            totalTime += timeStop - timeStart
-            timeOfSteps.append(timeStop - timeStart)  # add saving procedure <- FOR WHAT!? - TODO (?)
+            time_stop = time.time()
+            total_time += time_stop - time_start
+            time_of_steps.append(time_stop - time_start)
             
-            print(f"Np = {numOfPlayers[-1]}, "
-                  f"Ns = {numOfStrategies[-1]}, "
-                  f"AvgE = {round(avgEnergy[-1], 2)} "
-                  f"\nRound Execution Time [h:m:s]: {create_time_string(timeOfSteps[-1])}\nRound Execution Time [s]: {timeOfSteps[-1]:.4f} [sec]"
-                  f"\nTotal Execution Time [h:m:s]: {create_time_string(totalTime)}")
+            print(f"Np = {num_of_players[-1]}, "
+                  f"Ns = {num_of_strategies[-1]}, "
+                  f"AvgE = {round(avg_energy[-1], 2)} "
+                  f"\nRound Execution Time [h:m:s]: {create_time_string(time_of_steps[-1])}\nRound Execution Time [s]: {time_of_steps[-1]:.4f} [sec]"
+                  f"\nTotal Execution Time [h:m:s]: {create_time_string(total_time)}")
 
             print(f"\n5 Most Popular Strategies: \n\n[Population] - [Strategy]")
             for strategy, population in env.getMostPopularStrategies(5):
                 print(f"[{population}] - {strategy}")
             
-            print("-" * 100, end="")
+            print("-" * 80, end="")
 
 
-            if totalTime > time_duration:
+            if total_time > time_duration:
                 break
 
     except KeyboardInterrupt:
         print("\n\nProgram has been interrupted by the user.")
     finally:
-        windowsManager.quitWindow()
+        window_manager.quit_window()
 
-        print(f"\n\nProgram Simulation Process Named '{test_name}' is Finished.\n")
-        print(f"\nStarting saving output in Path: '{path + analysisOutName}'.\n")
+        if not args.without_saving_data:
+            print(f"\n\nProgram Simulation Process Named '{args.run_name}' is Finished.\n")
+            print(f"\nStarting saving output in Path: '{args.main_saving_folder}/{args.run_name}'.\n")
 
-        save_num_players_strategies_avg_energy(path, analysisOutName, numOfPlayers, numOfStrategies, avgEnergy)
+            save_num_players_strategies_avg_energy(
+                args.main_saving_folder,
+                args.run_name,
+                num_of_players,
+                num_of_strategies,
+                avg_energy
+            )
 
-        save_total_iterations_num(path, analysisOutName, roundsNum)
+            save_total_iterations_num(
+                args.main_saving_folder,
+                args.run_name,
+                iteration_num
+            )
 
-        env.saveAtSimulationEndingProcessStrategiesPayoffs(path + analysisOutName)
+            # env.saveAtSimulationEndingProcessStrategiesPayoffs()
 
         print("\n\nProgram has finished saving.\n\nGoodbye!!!\n")
 
